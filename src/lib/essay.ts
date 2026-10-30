@@ -3,11 +3,22 @@
 
 export type Part = { id: string; label: string; question: string }
 
+// A paragraph is built a few sentences at a time. Each chunk asks the student a couple of
+// questions, then Gemma turns their answers into 2-3 sentences covering `parts`.
+export type Chunk = {
+  id: string
+  label: string
+  parts: string[] // Part labels this chunk covers
+  questions: string[]
+  appendThesis?: boolean // drop the student's thesis in after this chunk (intro)
+}
+
 export type SectionSpec = {
   id: string
   title: string
   goal: string
   parts: Part[]
+  chunks: Chunk[]
 }
 
 export const ESSAY_TYPES = ['Argumentative', 'Expository', 'Compare & contrast', 'Cause & effect'] as const
@@ -29,6 +40,18 @@ export const INTRO: SectionSpec = {
     { id: 'context', label: 'Background', question: 'What does the reader need to know before your argument makes sense?' },
     { id: 'thesis', label: 'Thesis', question: 'Your thesis goes here, usually as the last sentence.' },
   ],
+  chunks: [
+    {
+      id: 'opening',
+      label: 'Hook + background',
+      parts: ['Hook', 'Background'],
+      questions: [
+        'What surprising fact, question or moment could grab a reader?',
+        'What does the reader need to know about this topic before your argument makes sense?',
+      ],
+      appendThesis: true,
+    },
+  ],
 }
 
 export const CONCLUSION: SectionSpec = {
@@ -40,7 +63,45 @@ export const CONCLUSION: SectionSpec = {
     { id: 'summary', label: 'Sum up', question: 'What did each of your three points show?' },
     { id: 'sowhat', label: 'So what?', question: 'Why should the reader care? What should they think or do now?' },
   ],
+  chunks: [
+    {
+      id: 'wrap',
+      label: 'Restate + sum up',
+      parts: ['Restate thesis', 'Sum up'],
+      questions: [
+        'In different words than before, what did your essay prove?',
+        'In a few words each, what did your three points show?',
+      ],
+    },
+    {
+      id: 'sowhat',
+      label: 'So what?',
+      parts: ['So what?'],
+      questions: ['Why should the reader care? What should they think or do now?'],
+    },
+  ],
 }
+
+const BODY_CHUNKS: Chunk[] = [
+  {
+    id: 'proof',
+    label: 'Point + proof',
+    parts: ['Topic sentence', 'Evidence'],
+    questions: [
+      "In your own words, what's this paragraph's main idea?",
+      "What's your evidence? A fact, example or quote, and where it's from (check your research notes).",
+    ],
+  },
+  {
+    id: 'why',
+    label: 'Why it matters',
+    parts: ['Explanation', 'Link back'],
+    questions: [
+      'Why does that evidence prove your point?',
+      'How does this connect back to your thesis?',
+    ],
+  },
+]
 
 export function bodySpec(index: number, point: string): SectionSpec {
   return {
@@ -48,6 +109,7 @@ export function bodySpec(index: number, point: string): SectionSpec {
     title: `Body paragraph ${index + 1}`,
     goal: `Prove this point: “${point || 'your point'}”`,
     parts: BODY_PARTS,
+    chunks: BODY_CHUNKS,
   }
 }
 
@@ -59,6 +121,7 @@ export type Draft = {
   points: string[]
   notes: string[]
   sections: Record<string, string>
+  chunkProgress: Record<string, number> // section id -> how many chunks are done
 }
 
 export const EMPTY_DRAFT: Draft = {
@@ -69,6 +132,7 @@ export const EMPTY_DRAFT: Draft = {
   points: ['', '', ''],
   notes: ['', '', ''],
   sections: {},
+  chunkProgress: {},
 }
 
 export function wordCount(text: string): number {

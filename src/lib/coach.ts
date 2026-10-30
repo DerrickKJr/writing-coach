@@ -2,13 +2,18 @@
 // so the UI gets structured data (cards, checklists) instead of free text.
 
 import { chatJSON, type ChatMessage } from './ollama'
-import type { Draft, SectionSpec } from './essay'
+import type { Chunk, Draft, SectionSpec } from './essay'
 
-function systemPrompt(draft: Draft): string {
+// 'coach' never writes essay text. 'assemble' may write a sentence, but only out of the student's own words.
+type Mode = 'coach' | 'assemble'
+
+function systemPrompt(draft: Draft, mode: Mode): string {
   return [
     `You are a friendly writing coach for a ${draft.grade.toLowerCase()} student working on a ${draft.essayType.toLowerCase()} essay.`,
     "Your job is to help the student write their OWN essay. Hard rules:",
-    "- Never write sentences, paragraphs or a thesis the student could copy into their essay. Offer directions, questions and feedback instead.",
+    mode === 'coach'
+      ? "- Never write sentences, paragraphs or a thesis the student could copy into their essay. Offer directions, questions and feedback instead."
+      : "- You may only combine, reorder and tighten the student's OWN words. Never add ideas, reasons, facts or examples the student didn't give.",
     "- When you show an example, it must be about a completely different topic than the student's essay.",
     "- Never invent quotes, statistics, sources or citations. If you mention a fact, it is general knowledge the student must check.",
     `- Use simple, encouraging language a ${draft.grade.toLowerCase()} student understands. Be brief. Plain text only, no markdown.`,
@@ -18,9 +23,9 @@ function systemPrompt(draft: Draft): string {
   ].join('\n')
 }
 
-function ask<T>(draft: Draft, request: string, schema: object, temperature?: number): Promise<T> {
+function ask<T>(draft: Draft, request: string, schema: object, temperature?: number, mode: Mode = 'coach'): Promise<T> {
   const messages: ChatMessage[] = [
-    { role: 'system', content: systemPrompt(draft) },
+    { role: 'system', content: systemPrompt(draft, mode) },
     { role: 'user', content: request },
   ]
   return chatJSON<T>(messages, schema, temperature)
@@ -88,6 +93,35 @@ Give a verdict, up to 2 strengths, and up to 3 questions that push the student t
   )
 }
 
+export type ThesisAnswer = { question: string; answer: string }
+export type CombinedThesis = { thesis: string; changes: string[] }
+
+// Fold the student's answers to the check questions back into one thesis sentence.
+export function combineThesis(draft: Draft, answers: ThesisAnswer[]): Promise<CombinedThesis> {
+  const qa = answers
+    .filter((a) => a.answer.trim())
+    .map((a) => `Q: ${a.question}\nStudent's answer: ${a.answer}`)
+    .join('\n\n')
+  return ask<CombinedThesis>(
+    draft,
+    `The student's current thesis: "${draft.thesis}"
+They answered questions about how to make it stronger:
+
+${qa}
+
+Combine their thesis and answers into ONE clear thesis sentence. Keep the student's own words and voice wherever you can.
+Only use ideas that appear in their thesis or answers. Don't add anything new.
+Also list up to 3 short notes on what you changed and which answer it came from.`,
+    {
+      type: 'object',
+      properties: { thesis: { type: 'string' }, changes: stringList(1, 3) },
+      required: ['thesis', 'changes'],
+    },
+    0.3,
+    'assemble',
+  )
+}
+
 // --- Main points ------------------------------------------------------------
 
 export type PointIdea = { label: string; why: string }
@@ -139,6 +173,48 @@ Give: up to 4 short background facts from general knowledge (the student will ve
 }
 
 // --- Paragraphs -------------------------------------------------------------
+
+export type ChunkAnswer = { question: string; answer: string }
+export type ChunkDraft = { needMore: boolean; followUp: string; text: string }
+
+type ChunkRequest = {
+  spec: SectionSpec
+  chunk: Chunk
+  answers: ChunkAnswer[]
+  soFar: string // the paragraph written so far, for flow
+  notes?: string // the student's research notes for this point
+  previous?: string // last draft, when the student said "not quite"
+  fix?: string // what the student said was off
+}
+
+// Turn the student's answers into 2-3 sentences. If the answers are too thin to write
+// the chunk without inventing anything, ask one follow-up question instead.
+export function draftChunk(draft: Draft, req: ChunkRequest): Promise<ChunkDraft> {
+  const qa = req.answers.map((a) => `Q: ${a.question}\nStudent: ${a.answer}`).join('\n\n')
+  const redo = req.previous
+    ? `\nYour last draft was:\n"${req.previous}"\nThe student said it's not quite right: "${req.fix}". Redraft it to say what they mean.`
+    : ''
+  return ask<ChunkDraft>(
+    draft,
+    `The student is building their ${req.spec.title.toLowerCase()} (${req.spec.goal}) a few sentences at a time.
+${req.soFar.trim() ? `Paragraph so far:\n"${req.soFar.trim()}"\n` : 'This is the start of the paragraph.\n'}${req.notes?.trim() ? `Student's research notes:\n"${req.notes.trim()}"\n` : ''}
+Their answers for this part:
+${qa}
+${redo}
+Write 2-3 sentences that cover: ${req.chunk.parts.join(', ')}. They must flow from the paragraph so far.
+Use ONLY ideas, facts and examples from the student's answers and notes, and keep their wording wherever you can.
+Evidence must come from what they gave you. Never invent statistics, quotes, studies or sources.
+If an answer is too vague or missing to write this without making things up, set needMore to true, leave text empty,
+and put ONE short, friendly question in followUp asking for exactly what's missing. Otherwise set needMore to false and followUp to "".`,
+    {
+      type: 'object',
+      properties: { needMore: { type: 'boolean' }, followUp: { type: 'string' }, text: { type: 'string' } },
+      required: ['needMore', 'followUp', 'text'],
+    },
+    0.4,
+    'assemble',
+  )
+}
 
 export type PartStatus = { part: string; status: 'done' | 'weak' | 'missing'; note: string }
 export type ParagraphFeedback = { parts: PartStatus[]; strengths: string[]; nextSteps: string[] }

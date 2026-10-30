@@ -2,6 +2,7 @@ import { paragraphFeedback, exampleParagraph, type ExampleParagraph, type Paragr
 import { wordCount, type SectionSpec } from '../lib/essay'
 import { useCoach } from '../lib/useCoach'
 import { CoachBox, DictationTip, ErrorNote, Thinking } from '../components/ui'
+import { ChunkBuilder } from '../components/ChunkBuilder'
 import type { StepProps } from './types'
 
 const STATUS_ICON = { done: '✅', weak: '🟡', missing: '⭕' } as const
@@ -12,9 +13,30 @@ export function SectionStep({ draft, update, spec, notes }: Props) {
   const feedback = useCoach<ParagraphFeedback>()
   const example = useCoach<ExampleParagraph>()
   const text = draft.sections[spec.id] ?? ''
+  const progress = draft.chunkProgress[spec.id] ?? 0
+  const chunk = spec.chunks[progress]
 
   function setText(value: string) {
     update({ sections: { ...draft.sections, [spec.id]: value } })
+  }
+
+  // Add an accepted chunk to the end of the paragraph and move on to the next chunk.
+  function acceptChunk(sentences: string) {
+    let added = sentences.trim()
+    if (chunk?.appendThesis && draft.thesis.trim()) added += ` ${draft.thesis.trim()}`
+    update({
+      sections: { ...draft.sections, [spec.id]: [text.trim(), added].filter(Boolean).join(' ') },
+      chunkProgress: { ...draft.chunkProgress, [spec.id]: progress + 1 },
+    })
+  }
+
+  function rebuild() {
+    if (confirm(`Clear this ${spec.title.toLowerCase()} and build it again with the coach?`)) {
+      update({
+        sections: { ...draft.sections, [spec.id]: '' },
+        chunkProgress: { ...draft.chunkProgress, [spec.id]: 0 },
+      })
+    }
   }
 
   return (
@@ -22,10 +44,11 @@ export function SectionStep({ draft, update, spec, notes }: Props) {
       <h2>{spec.title}</h2>
       <p className="lead">{spec.goal}</p>
 
-      <ol className="guide">
-        {spec.parts.map((p) => (
-          <li key={p.id}>
-            <strong>{p.label}:</strong> {p.question}
+      <ol className="chunk-steps" aria-label="Parts of this paragraph">
+        {spec.chunks.map((c, i) => (
+          <li key={c.id} className={i < progress ? 'done' : i === progress ? 'active' : ''}>
+            {i < progress ? '✓ ' : ''}
+            {c.label}
           </li>
         ))}
       </ol>
@@ -37,11 +60,37 @@ export function SectionStep({ draft, update, spec, notes }: Props) {
         </details>
       )}
 
+      {chunk ? (
+        <ChunkBuilder
+          key={`${spec.id}-${chunk.id}`}
+          draft={draft}
+          spec={spec}
+          chunk={chunk}
+          step={progress}
+          total={spec.chunks.length}
+          soFar={text}
+          notes={notes}
+          onAccept={acceptChunk}
+        />
+      ) : (
+        <p className="all-done">
+          ✓ All parts are in. Read your whole paragraph below, fix anything that doesn't sound like you, then get feedback.{' '}
+          <button type="button" className="link" onClick={rebuild}>
+            Rebuild with the coach
+          </button>
+        </p>
+      )}
+
       <label className="field">
         <span>
-          Your {spec.title.toLowerCase()} <em className="count">{wordCount(text)} words</em>
+          Your {spec.title.toLowerCase()} so far <em className="count">{wordCount(text)} words</em>
         </span>
-        <textarea rows={9} value={text} onChange={(e) => setText(e.target.value)} />
+        <textarea
+          rows={7}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Sentences you accept will show up here. You can edit them anytime."
+        />
       </label>
       <DictationTip />
 
