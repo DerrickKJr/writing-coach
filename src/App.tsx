@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { CONCLUSION, EMPTY_DRAFT, INTRO, bodySpec, type Draft } from './lib/essay'
+import { CONCLUSION, EMPTY_DRAFT, INTRO, assemble, bodySpec, type Draft } from './lib/essay'
 import { warmUp } from './lib/ollama'
 import { Stages } from './components/Stages'
 import { demoFromUrl } from './lib/demo'
@@ -37,15 +37,21 @@ const STEPS: Step[] = [
 ]
 
 function loadDraft(): { draft: Draft; step: number } {
-  const demo = demoFromUrl()
-  if (demo) return demo
+  let saved: { draft: Draft; step: number } | null = null
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
-    if (saved?.draft) return { draft: { ...EMPTY_DRAFT, ...saved.draft }, step: saved.step ?? 0 }
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
+    if (parsed?.draft) saved = { draft: { ...EMPTY_DRAFT, ...parsed.draft }, step: parsed.step ?? 0 }
   } catch {
     // Storage blocked or corrupted: start fresh.
   }
-  return { draft: EMPTY_DRAFT, step: 0 }
+
+  const demo = demoFromUrl()
+  // A ?test link must never silently wipe a student's essay.
+  const hasWork = saved && (saved.draft.assignment.trim() || saved.draft.thesis.trim() || assemble(saved.draft))
+  if (demo && (!hasWork || confirm('Load the sample essay? This replaces the essay saved in this browser.'))) {
+    return demo
+  }
+  return saved ?? { draft: EMPTY_DRAFT, step: 0 }
 }
 
 // Read once at startup: React's StrictMode calls state initializers twice, and the ?test

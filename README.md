@@ -30,4 +30,4 @@ Mac dictation (press `fn` twice) works in every text box today.
 
 ## Test link
 
-Open `http://localhost:5175/?test` to load a fully filled sample essay (prompt, thesis, points, notes, every paragraph and three sources). Add `&step=` with `setup`, `thesis`, `points`, `body-0`, `body-1`, `body-2`, `intro`, `conclusion` or `review` to start on that stage (default `body-0`). This replaces the saved draft in that browser.
+Open `http://localhost:5175/?test` to load a fully filled sample essay (prompt, thesis, points, notes, every paragraph and three sources). Add `&step=` with `setup`, `thesis`, `points`, `body-0`, `body-1`, `body-2`, `intro`, `conclusion` or `review` to start on that stage (default `body-0`). If an essay is already saved in that browser, it asks before replacing it.
