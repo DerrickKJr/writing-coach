@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { CONCLUSION, EMPTY_DRAFT, INTRO, bodySpec, type Draft } from './lib/essay'
 import { warmUp } from './lib/ollama'
 import { Stages } from './components/Stages'
+import { demoFromUrl } from './lib/demo'
 import { SetupStep } from './steps/SetupStep'
 import { ThesisStep } from './steps/ThesisStep'
 import { PointsStep } from './steps/PointsStep'
@@ -36,6 +37,8 @@ const STEPS: Step[] = [
 ]
 
 function loadDraft(): { draft: Draft; step: number } {
+  const demo = demoFromUrl()
+  if (demo) return demo
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
     if (saved?.draft) return { draft: { ...EMPTY_DRAFT, ...saved.draft }, step: saved.step ?? 0 }
@@ -45,8 +48,11 @@ function loadDraft(): { draft: Draft; step: number } {
   return { draft: EMPTY_DRAFT, step: 0 }
 }
 
+// Read once at startup: React's StrictMode calls state initializers twice, and the ?test
+// link is removed from the URL on first read.
+const initial = loadDraft()
+
 export default function App() {
-  const [initial] = useState(loadDraft)
   const [draft, setDraft] = useState<Draft>(initial.draft)
   const [step, setStep] = useState(initial.step)
   const [modelStatus, setModelStatus] = useState<'loading' | 'ready' | 'offline'>('loading')
