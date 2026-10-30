@@ -1,8 +1,17 @@
-import { paragraphFeedback, exampleParagraph, type ExampleParagraph, type ParagraphFeedback } from '../lib/coach'
+import { useState } from 'react'
+import {
+  exampleParagraph,
+  paragraphFeedback,
+  reviseParagraph,
+  type ExampleParagraph,
+  type ParagraphFeedback,
+  type Revision,
+} from '../lib/coach'
 import { wordCount, type SectionSpec } from '../lib/essay'
 import { useCoach } from '../lib/useCoach'
 import { CoachBox, DictationTip, ErrorNote, Thinking } from '../components/ui'
 import { ChunkBuilder } from '../components/ChunkBuilder'
+import { Authored } from '../components/Authored'
 import type { StepProps } from './types'
 
 const STATUS_ICON = { done: '✅', weak: '🟡', missing: '⭕' } as const
@@ -12,6 +21,9 @@ type Props = StepProps & { spec: SectionSpec; notes?: string; point?: string }
 export function SectionStep({ draft, update, spec, notes, point }: Props) {
   const feedback = useCoach<ParagraphFeedback>()
   const example = useCoach<ExampleParagraph>()
+  const revision = useCoach<Revision>()
+  const [reply, setReply] = useState('')
+  const [revised, setRevised] = useState(false)
   const text = draft.sections[spec.id] ?? ''
   const progress = draft.chunkProgress[spec.id] ?? 0
   const chunk = spec.chunks[progress]
@@ -28,6 +40,28 @@ export function SectionStep({ draft, update, spec, notes, point }: Props) {
       sections: { ...draft.sections, [spec.id]: [text.trim(), added].filter(Boolean).join(' ') },
       chunkProgress: { ...draft.chunkProgress, [spec.id]: progress + 1 },
     })
+  }
+
+  function getFeedback() {
+    setRevised(false)
+    revision.setData(null)
+    feedback.run(() => paragraphFeedback(draft, spec, text))
+  }
+
+  function revise() {
+    if (!feedback.data) return
+    const fb = feedback.data
+    revision.run(() => reviseParagraph(draft, spec, text, fb, reply, notes))
+  }
+
+  // Swap in the revised paragraph and clear the old feedback so the student can check again.
+  function applyRevision() {
+    if (!revision.data) return
+    setText(revision.data.text)
+    revision.setData(null)
+    feedback.setData(null)
+    setReply('')
+    setRevised(true)
   }
 
   function rebuild() {
@@ -98,12 +132,13 @@ export function SectionStep({ draft, update, spec, notes, point }: Props) {
         <button
           type="button"
           className="primary"
-          onClick={() => feedback.run(() => paragraphFeedback(draft, spec, text))}
+          onClick={getFeedback}
           disabled={feedback.loading || wordCount(text) < 5}
         >
-          Get feedback
+          {revised ? 'Get feedback again' : 'Get feedback'}
         </button>
       </div>
+      {revised && <p className="hint">✓ Updated with your changes. Get feedback again to see how it improved.</p>}
 
       {example.loading && <Thinking label="Writing an example on another topic…" />}
       <ErrorNote message={example.error} />
@@ -144,6 +179,43 @@ export function SectionStep({ draft, update, spec, notes, point }: Props) {
               <li key={s}>{s}</li>
             ))}
           </ul>
+          <label className="field reply">
+            <span>Respond to the feedback in your own words</span>
+            <textarea
+              rows={3}
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              placeholder="e.g. My proof is that our class average went up after the phone basket rule"
+            />
+          </label>
+          <div className="actions">
+            <button type="button" className="primary" onClick={revise} disabled={!reply.trim() || revision.loading}>
+              Update my paragraph
+            </button>
+          </div>
+        </CoachBox>
+      )}
+
+      {revision.loading && <Thinking label="Updating your paragraph…" />}
+      <ErrorNote message={revision.error} />
+      {revision.data && !revision.loading && (
+        <CoachBox title="Updated paragraph">
+          <Authored text={revision.data.text} sources={[text, reply, notes ?? '', draft.thesis, ...draft.points]} />
+          <p className="hint">What changed:</p>
+          <ul>
+            {revision.data.changes.map((c) => (
+              <li key={c}>{c}</li>
+            ))}
+          </ul>
+          <p className="ask">Read it. Does this say what you meant?</p>
+          <div className="actions">
+            <button type="button" className="primary" onClick={applyRevision}>
+              Use this version
+            </button>
+            <button type="button" onClick={() => revision.setData(null)}>
+              Keep mine
+            </button>
+          </div>
         </CoachBox>
       )}
     </>

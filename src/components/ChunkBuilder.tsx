@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { GAP_MARKER, draftChunk, type ChunkAnswer, type ChunkDraft } from '../lib/coach'
-import { attribute } from '../lib/authorship'
+import { draftChunk, type ChunkAnswer, type ChunkDraft } from '../lib/coach'
 import type { Chunk, Draft, SectionSpec } from '../lib/essay'
 import { useCoach } from '../lib/useCoach'
 import { CoachBox, ErrorNote, Thinking } from './ui'
+import { Authored } from './Authored'
 
 type Props = {
   draft: Draft
@@ -65,17 +65,6 @@ export function ChunkBuilder({ draft, spec, chunk, step, total, soFar, notes, po
 
   // Everything the student typed themselves counts as "their words".
   const sources = [...allAnswers.map((a) => a.answer), notes ?? '', fix, draft.thesis, ...draft.points]
-  const authorship = drafted ? attribute(drafted, sources) : null
-
-  // Tokens inside [add your evidence here] get their own style so the gap is obvious.
-  let inGap = false
-  const rendered = authorship?.tokens.map((t, i) => {
-    const gap = inGap || t.text.includes('[')
-    inGap = gap && !t.text.includes(']')
-    if (gap) return <span key={i} className="gap">{t.text}</span>
-    return t.yours ? <mark key={i}>{t.text}</mark> : <span key={i}>{t.text}</span>
-  })
-
   return (
     <CoachBox title={total > 1 ? `Part ${step + 1} of ${total}: ${chunk.label}` : chunk.label}>
       <p className="hint">Short answers are fine. I'll write it using only your ideas.</p>
@@ -129,20 +118,9 @@ export function ChunkBuilder({ draft, spec, chunk, step, total, soFar, notes, po
         </div>
       )}
 
-      {drafted && authorship && !result.loading && (
+      {drafted && !result.loading && (
         <div className="drafted">
-          <p className="chunk-text">{rendered}</p>
-          {drafted.includes(GAP_MARKER) && (
-            <p className="hint warn">Fill in the highlighted gap with real evidence before you hand this in.</p>
-          )}
-          <div className="meter" aria-label={`${authorship.percent}% of the key words are yours`}>
-            <div className="meter-bar">
-              <div className="meter-fill" style={{ width: `${authorship.percent}%` }} />
-            </div>
-            <span>
-              <strong>{authorship.percent}%</strong> your words <span className="hint">(highlighted)</span>
-            </span>
-          </div>
+          <Authored text={drafted} sources={sources} />
 
           {!fixing ? (
             <>

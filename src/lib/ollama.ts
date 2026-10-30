@@ -51,7 +51,8 @@ export async function chatJSON<T>(messages: ChatMessage[], schema: object, tempe
 
   const data = await res.json()
   try {
-    return JSON.parse(data.message.content) as T
+    // Gemma sometimes adds *markdown emphasis* even when told not to; the UI shows plain text.
+    return JSON.parse(data.message.content.replace(/\*+/g, '')) as T
   } catch {
     throw new OllamaError('Gemma sent back something unexpected. Try again.')
   }

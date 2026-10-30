@@ -225,6 +225,46 @@ ${gaps}`,
 
 export type PartStatus = { part: string; status: 'done' | 'weak' | 'missing'; note: string }
 export type ParagraphFeedback = { parts: PartStatus[]; strengths: string[]; nextSteps: string[] }
+export type Revision = { text: string; changes: string[] }
+
+// Revise a paragraph using the feedback it got and the student's reply to that feedback.
+export function reviseParagraph(
+  draft: Draft,
+  spec: SectionSpec,
+  text: string,
+  feedback: ParagraphFeedback,
+  reply: string,
+  notes?: string,
+): Promise<Revision> {
+  const fb = [
+    ...feedback.parts.filter((p) => p.status !== 'done').map((p) => `${p.part} (${p.status}): ${p.note}`),
+    ...feedback.nextSteps.map((s) => `Next step: ${s}`),
+  ].join('\n')
+  return ask<Revision>(
+    draft,
+    `The student's ${spec.title.toLowerCase()}:
+"""
+${text}
+"""
+Feedback they got:
+${fb}
+${notes?.trim() ? `\nTheir research notes:\n"${notes.trim()}"\n` : ''}
+The student's reply to the feedback, in their own words:
+"${reply}"
+
+Revise the paragraph to address the feedback using the student's reply. Keep every sentence that was fine as it is.
+Use ONLY ideas from their paragraph, reply and notes, and keep their wording wherever you can. Make it read smoothly.
+Never invent statistics, quotes or sources. If evidence is still missing, put ${GAP_MARKER} where it should go.
+Also list up to 3 short notes on what you changed.`,
+    {
+      type: 'object',
+      properties: { text: { type: 'string' }, changes: stringList(1, 3) },
+      required: ['text', 'changes'],
+    },
+    0.3,
+    'assemble',
+  )
+}
 
 export function paragraphFeedback(draft: Draft, spec: SectionSpec, text: string): Promise<ParagraphFeedback> {
   return ask<ParagraphFeedback>(
