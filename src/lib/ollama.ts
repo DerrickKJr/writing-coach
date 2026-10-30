@@ -20,6 +20,34 @@ export async function warmUp(): Promise<void> {
   if (!res.ok) throw new OllamaError(`Couldn't load ${MODEL} (${res.status}).`)
 }
 
+// Read the text in a photo (a worksheet, a textbook page, handwritten notes) with Gemma's vision.
+export async function transcribeImage(base64: string): Promise<string> {
+  const res = await fetch('/ollama/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [
+        {
+          role: 'user',
+          content:
+            'Transcribe all the text in this image exactly as written, in reading order. Output only the text. If there is no text, describe what the image shows in 2-3 sentences.',
+          images: [base64],
+        },
+      ],
+      stream: false,
+      think: false,
+      keep_alive: KEEP_ALIVE,
+      options: { temperature: 0 },
+    }),
+  }).catch(() => {
+    throw new OllamaError("Can't reach Gemma. Make sure Ollama is running (ollama serve).")
+  })
+  if (!res.ok) throw new OllamaError(`Gemma couldn't read that image (${res.status}).`)
+  const data = await res.json()
+  return data.message.content as string
+}
+
 // Ask the model for JSON that matches `schema` and parse it.
 export async function chatJSON<T>(messages: ChatMessage[], schema: object, temperature = 0.7): Promise<T> {
   let res: Response

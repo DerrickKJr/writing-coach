@@ -68,27 +68,27 @@ export function SetupStep({ draft, update }: StepProps) {
       <section className="sources" aria-label="Your sources">
         <h3>Add your sources (optional)</h3>
         <p className="hint">
-          Class readings, articles or your notes (.pdf, .txt or .md). I'll use them for ideas and evidence and tell you
+          Class readings, articles, your notes, or photos of a worksheet or textbook page (.pdf, .txt, .md or images). Gemma reads the text in photos. I'll use them for ideas and evidence and tell you
           which file each fact came from. Files stay on this computer.
         </p>
         <label className="upload">
           <input
             type="file"
-            accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown"
+            accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown,image/*"
             multiple
             onChange={(e) => {
               addFiles(e.target.files)
               e.target.value = ''
             }}
           />
-          <span>{reading ? 'Reading files…' : '📎 Choose files'}</span>
+          <span>{reading ? 'Reading files… photos take a few seconds' : '📎 Choose files or photos'}</span>
         </label>
         <ErrorNote message={error} />
         {draft.sources.length > 0 && (
           <ul className="source-list">
             {draft.sources.map((s) => (
               <li key={s.name}>
-                <span>📄 {s.name}</span>
+                <span>{/\.(png|jpe?g|heic|webp|gif)$/i.test(s.name) ? '🖼️' : '📄'} {s.name}</span>
                 <span className="hint">{s.text.split(' ').length.toLocaleString()} words</span>
                 <button type="button" className="link" onClick={() => remove(s.name)} aria-label={`Remove ${s.name}`}>
                   Remove
