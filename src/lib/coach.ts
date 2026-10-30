@@ -3,11 +3,12 @@
 
 import { chatJSON, type ChatMessage } from './ollama'
 import type { Chunk, Draft, SectionSpec } from './essay'
+import { relevantExcerpts } from './sources'
 
 // 'coach' never writes essay text. 'assemble' may write a sentence, but only out of the student's own words.
 type Mode = 'coach' | 'assemble'
 
-function systemPrompt(draft: Draft, mode: Mode): string {
+function systemPrompt(draft: Draft, mode: Mode, excerpts: string): string {
   return [
     `You are a friendly writing coach for a ${draft.grade.toLowerCase()} student working on a ${draft.essayType.toLowerCase()} essay.`,
     "Your job is to help the student write their OWN essay. Hard rules:",
@@ -20,12 +21,25 @@ function systemPrompt(draft: Draft, mode: Mode): string {
     '',
     `The assignment: ${draft.assignment || '(not given)'}`,
     draft.thesis ? `The student's thesis: ${draft.thesis}` : '',
+    excerpts
+      ? `\nExcerpts from files the student uploaded. These are real sources: you may use facts from them as evidence and name the file they came from.\n${excerpts}`
+      : '',
   ].join('\n')
 }
 
-function ask<T>(draft: Draft, request: string, schema: object, temperature?: number, mode: Mode = 'coach'): Promise<T> {
+function ask<T>(
+  draft: Draft,
+  request: string,
+  schema: object,
+  temperature?: number,
+  mode: Mode = 'coach',
+  useSources = true,
+): Promise<T> {
+  // Only the passages that match this request, so the prompt stays small for a local model.
+  const query = `${draft.assignment} ${draft.thesis} ${request}`
+  const excerpts = useSources ? relevantExcerpts(draft.sources, query) : ''
   const messages: ChatMessage[] = [
-    { role: 'system', content: systemPrompt(draft, mode) },
+    { role: 'system', content: systemPrompt(draft, mode, excerpts) },
     { role: 'user', content: request },
   ]
   return chatJSON<T>(messages, schema, temperature)
@@ -210,7 +224,7 @@ Their answers:
 ${qa}
 ${redo}
 Write ${req.chunk.sentences} sentences that cover: ${req.chunk.parts.join(', ')}.
-${req.chunk.appendThesis ? "Don't write or repeat the thesis or its reasons. It gets added right after your sentences, so give background that leads into it.\n" : ''}Use ONLY ideas, facts and examples from the student's thesis, main points, answers and notes, and keep their wording wherever you can.
+${req.chunk.appendThesis ? "Don't write or repeat the thesis or its reasons. It gets added right after your sentences, so give background that leads into it.\n" : ''}Use ONLY ideas, facts and examples from the student's thesis, main points, answers, notes and uploaded files, and keep their wording wherever you can.
 Write simply, the way a ${draft.grade.toLowerCase()} student would, and make it read smoothly without repeating phrases. Evidence must come from what they gave you. Never invent statistics, quotes, studies or sources.
 ${gaps}`,
     {
@@ -253,7 +267,7 @@ The student's reply to the feedback, in their own words:
 "${reply}"
 
 Revise the paragraph to address the feedback using the student's reply. Keep every sentence that was fine as it is.
-Use ONLY ideas from their paragraph, reply and notes, and keep their wording wherever you can. Make it read smoothly.
+Use ONLY ideas from their paragraph, reply, notes and uploaded files, and keep their wording wherever you can. Make it read smoothly.
 Never invent statistics, quotes or sources. If evidence is still missing, put ${GAP_MARKER} where it should go.
 Also list up to 3 short notes on what you changed.`,
     {
@@ -340,6 +354,8 @@ Label each sentence with the part it plays: ${spec.parts.map((p) => p.label).joi
       required: ['topic', 'sentences'],
     },
     0.7,
+    'coach',
+    false,
   )
 }
 

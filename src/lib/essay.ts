@@ -121,6 +121,8 @@ export function bodySpec(index: number, point: string): SectionSpec {
   }
 }
 
+import type { Source } from './sources'
+
 export type Draft = {
   assignment: string
   essayType: string
@@ -130,6 +132,7 @@ export type Draft = {
   notes: string[]
   sections: Record<string, string>
   chunkProgress: Record<string, number> // section id -> how many chunks are done
+  sources: Source[] // uploaded files for context
 }
 
 export const EMPTY_DRAFT: Draft = {
@@ -141,6 +144,7 @@ export const EMPTY_DRAFT: Draft = {
   notes: ['', '', ''],
   sections: {},
   chunkProgress: {},
+  sources: [],
 }
 
 export function wordCount(text: string): number {

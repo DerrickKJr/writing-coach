@@ -689,3 +689,58 @@ button.link {
   padding-top: 0.75rem;
   border-top: 1px dashed var(--border);
 }
+
+.sources {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+.sources h3 {
+  font-size: 1rem;
+}
+
+.upload {
+  display: inline-flex;
+  margin-top: 0.5rem;
+  cursor: pointer;
+}
+
+.upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.upload span {
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.upload input:focus-visible + span {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.source-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+}
+
+.source-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.source-list li span:first-child {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
