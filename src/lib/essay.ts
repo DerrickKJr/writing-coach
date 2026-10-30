@@ -3,13 +3,21 @@
 
 export type Part = { id: string; label: string; question: string }
 
-// A paragraph is built a few sentences at a time. Each chunk asks the student a couple of
-// questions, then Gemma turns their answers into 2-3 sentences covering `parts`.
+export type Question = {
+  text: string
+  placeholder: string
+  prefill?: 'point' | 'notes' // start the box with the student's main point or research notes
+}
+
+// A paragraph is drafted from a few short answers. Gemma turns them into `sentences`
+// sentences covering `parts`, using the thesis and main points the student already wrote.
 export type Chunk = {
   id: string
   label: string
+  button: string
+  sentences: string
   parts: string[] // Part labels this chunk covers
-  questions: string[]
+  questions: Question[]
   appendThesis?: boolean // drop the student's thesis in after this chunk (intro)
 }
 
@@ -43,11 +51,15 @@ export const INTRO: SectionSpec = {
   chunks: [
     {
       id: 'opening',
-      label: 'Hook + background',
+      label: 'Introduction',
+      button: 'Write my intro',
+      sentences: '2-3',
       parts: ['Hook', 'Background'],
       questions: [
-        'What surprising fact, question or moment could grab a reader?',
-        'What does the reader need to know about this topic before your argument makes sense?',
+        {
+          text: 'What would grab a reader’s attention?',
+          placeholder: 'e.g. Most kids at my school check their phone like 50 times a day',
+        },
       ],
       appendThesis: true,
     },
@@ -66,39 +78,35 @@ export const CONCLUSION: SectionSpec = {
   chunks: [
     {
       id: 'wrap',
-      label: 'Restate + sum up',
-      parts: ['Restate thesis', 'Sum up'],
+      label: 'Conclusion',
+      button: 'Write my conclusion',
+      sentences: '3-4',
+      parts: ['Restate thesis', 'Sum up', 'So what?'],
       questions: [
-        'In different words than before, what did your essay prove?',
-        'In a few words each, what did your three points show?',
+        {
+          text: 'Why should anyone care?',
+          placeholder: 'e.g. Schools that ban phones could help kids get better grades',
+        },
       ],
-    },
-    {
-      id: 'sowhat',
-      label: 'So what?',
-      parts: ['So what?'],
-      questions: ['Why should the reader care? What should they think or do now?'],
     },
   ],
 }
 
 const BODY_CHUNKS: Chunk[] = [
   {
-    id: 'proof',
-    label: 'Point + proof',
-    parts: ['Topic sentence', 'Evidence'],
+    id: 'paragraph',
+    label: 'Your paragraph',
+    button: 'Write my paragraph',
+    sentences: '4-5',
+    parts: ['Topic sentence', 'Evidence', 'Explanation', 'Link back'],
     questions: [
-      "In your own words, what's this paragraph's main idea?",
-      "What's your evidence? A fact, example or quote, and where it's from (check your research notes).",
-    ],
-  },
-  {
-    id: 'why',
-    label: 'Why it matters',
-    parts: ['Explanation', 'Link back'],
-    questions: [
-      'Why does that evidence prove your point?',
-      'How does this connect back to your thesis?',
+      { text: 'What’s this paragraph about?', placeholder: 'Your main point', prefill: 'point' },
+      {
+        text: 'What’s your proof?',
+        placeholder: 'e.g. My teacher said grades went up after the phone ban',
+        prefill: 'notes',
+      },
+      { text: 'Why does that matter?', placeholder: 'e.g. Kids learn more when they’re not distracted' },
     ],
   },
 ]

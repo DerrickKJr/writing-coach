@@ -26,7 +26,7 @@ const STEPS: Step[] = [
       id: `body-${i}`,
       label: `Body ${i + 1}`,
       ready: (d) => Boolean(d.sections[`body-${i}`]?.trim()),
-      render: (p) => <SectionStep key={i} {...p} spec={bodySpec(i, p.draft.points[i])} notes={p.draft.notes[i]} />,
+      render: (p) => <SectionStep key={i} {...p} spec={bodySpec(i, p.draft.points[i])} notes={p.draft.notes[i]} point={p.draft.points[i]} />,
     }),
   ),
   { id: 'intro', label: 'Introduction', ready: (d) => Boolean(d.sections.intro?.trim()), render: (p) => <SectionStep key="intro" {...p} spec={INTRO} /> },
@@ -81,7 +81,7 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <h1>
-          Writing Coach <span className="badge">Essay</span>
+          Writing Coach <span className="badge">Essay · Quick</span>
         </h1>
         <p className={`model ${modelStatus}`} role="status">
           {modelStatus === 'loading' && <>Waking up Gemma… the first load can take a few minutes</>}

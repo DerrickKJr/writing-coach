@@ -185,27 +185,34 @@ type ChunkRequest = {
   notes?: string // the student's research notes for this point
   previous?: string // last draft, when the student said "not quite"
   fix?: string // what the student said was off
+  allowGaps?: boolean // student chose "write it anyway": mark missing evidence instead of asking
 }
 
-// Turn the student's answers into 2-3 sentences. If the answers are too thin to write
-// the chunk without inventing anything, ask one follow-up question instead.
+export const GAP_MARKER = '[add your evidence here]'
+
+// Turn the student's answers into a short paragraph. If the answers are too thin to write
+// it without inventing anything, ask one follow-up question instead (unless allowGaps).
 export function draftChunk(draft: Draft, req: ChunkRequest): Promise<ChunkDraft> {
   const qa = req.answers.map((a) => `Q: ${a.question}\nStudent: ${a.answer}`).join('\n\n')
+  const points = draft.points.filter(Boolean)
   const redo = req.previous
     ? `\nYour last draft was:\n"${req.previous}"\nThe student said it's not quite right: "${req.fix}". Redraft it to say what they mean.`
     : ''
+  const gaps = req.allowGaps
+    ? `Never ask a follow-up. If evidence is missing or vague, write the sentence around it and put ${GAP_MARKER} where the evidence should go. Set needMore to false.`
+    : `If an answer is too vague or missing to write this without making things up, set needMore to true, leave text empty,
+and put ONE short, friendly question in followUp asking for exactly what's missing. Otherwise set needMore to false and followUp to "".`
   return ask<ChunkDraft>(
     draft,
-    `The student is building their ${req.spec.title.toLowerCase()} (${req.spec.goal}) a few sentences at a time.
-${req.soFar.trim() ? `Paragraph so far:\n"${req.soFar.trim()}"\n` : 'This is the start of the paragraph.\n'}${req.notes?.trim() ? `Student's research notes:\n"${req.notes.trim()}"\n` : ''}
-Their answers for this part:
+    `Write the student's ${req.spec.title.toLowerCase()}. Its goal: ${req.spec.goal}
+${points.length ? `The student's three main points: ${points.join('; ')}\n` : ''}${req.soFar.trim() ? `What they've written so far:\n"${req.soFar.trim()}"\n` : ''}${req.notes?.trim() ? `Student's research notes:\n"${req.notes.trim()}"\n` : ''}
+Their answers:
 ${qa}
 ${redo}
-Write 2-3 sentences that cover: ${req.chunk.parts.join(', ')}. They must flow from the paragraph so far.
-Use ONLY ideas, facts and examples from the student's answers and notes, and keep their wording wherever you can.
-Evidence must come from what they gave you. Never invent statistics, quotes, studies or sources.
-If an answer is too vague or missing to write this without making things up, set needMore to true, leave text empty,
-and put ONE short, friendly question in followUp asking for exactly what's missing. Otherwise set needMore to false and followUp to "".`,
+Write ${req.chunk.sentences} sentences that cover: ${req.chunk.parts.join(', ')}.
+${req.chunk.appendThesis ? "Don't write or repeat the thesis or its reasons. It gets added right after your sentences, so give background that leads into it.\n" : ''}Use ONLY ideas, facts and examples from the student's thesis, main points, answers and notes, and keep their wording wherever you can.
+Write simply, the way a ${draft.grade.toLowerCase()} student would, and make it read smoothly without repeating phrases. Evidence must come from what they gave you. Never invent statistics, quotes, studies or sources.
+${gaps}`,
     {
       type: 'object',
       properties: { needMore: { type: 'boolean' }, followUp: { type: 'string' }, text: { type: 'string' } },

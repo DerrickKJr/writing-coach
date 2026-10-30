@@ -7,9 +7,9 @@ import type { StepProps } from './types'
 
 const STATUS_ICON = { done: '✅', weak: '🟡', missing: '⭕' } as const
 
-type Props = StepProps & { spec: SectionSpec; notes?: string }
+type Props = StepProps & { spec: SectionSpec; notes?: string; point?: string }
 
-export function SectionStep({ draft, update, spec, notes }: Props) {
+export function SectionStep({ draft, update, spec, notes, point }: Props) {
   const feedback = useCoach<ParagraphFeedback>()
   const example = useCoach<ExampleParagraph>()
   const text = draft.sections[spec.id] ?? ''
@@ -44,21 +44,17 @@ export function SectionStep({ draft, update, spec, notes }: Props) {
       <h2>{spec.title}</h2>
       <p className="lead">{spec.goal}</p>
 
-      <ol className="chunk-steps" aria-label="Parts of this paragraph">
-        {spec.chunks.map((c, i) => (
-          <li key={c.id} className={i < progress ? 'done' : i === progress ? 'active' : ''}>
-            {i < progress ? '✓ ' : ''}
-            {c.label}
-          </li>
-        ))}
-      </ol>
-
-      {notes?.trim() && (
-        <details className="notes" open>
-          <summary>Your research notes</summary>
-          <p>{notes}</p>
-        </details>
+      {spec.chunks.length > 1 && (
+        <ol className="chunk-steps" aria-label="Parts of this paragraph">
+          {spec.chunks.map((c, i) => (
+            <li key={c.id} className={i < progress ? 'done' : i === progress ? 'active' : ''}>
+              {i < progress ? '✓ ' : ''}
+              {c.label}
+            </li>
+          ))}
+        </ol>
       )}
+
 
       {chunk ? (
         <ChunkBuilder
@@ -70,6 +66,7 @@ export function SectionStep({ draft, update, spec, notes }: Props) {
           total={spec.chunks.length}
           soFar={text}
           notes={notes}
+          point={point}
           onAccept={acceptChunk}
         />
       ) : (
