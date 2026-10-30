@@ -567,3 +567,72 @@ button.primary {
 .stage-group ol {
   grid-template-columns: minmax(0, 1fr);
 }
+
+/* Assignment prompt on its stage card */
+.stage-prompt {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0.45rem 0 0 2.05rem;
+  font-family: var(--serif);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.stage:disabled .stage-prompt {
+  color: var(--faint);
+}
+
+/* Sources under Synthesis */
+.source-panel {
+  padding: 0.6rem 0.75rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.source-panel ul {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+}
+
+.source-panel li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+
+.source-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-remove {
+  border: 0;
+  background: none;
+  padding: 0 0.35rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.small-upload {
+  display: flex;
+  margin-top: 0.25rem;
+}
+
+.small-upload span {
+  flex: 1;
+  text-align: center;
+  font-size: 0.82rem;
+  padding: 0.45rem 0.75rem;
+}

@@ -116,6 +116,7 @@ export default function App() {
           reachable={reachable}
           onSelect={setStep}
           onNewEssay={startOver}
+          update={update}
         />
       )}
 
