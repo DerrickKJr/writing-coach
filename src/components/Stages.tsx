@@ -3,7 +3,7 @@ import { wordCount, type Draft } from '../lib/essay'
 import { readSource, type Source } from '../lib/sources'
 import { ErrorNote } from './ui'
 
-type StageInfo = { tag: string; sub: string; quote?: string; target?: number; section?: string }
+type StageInfo = { tag: string; sub: string; quote?: string; section?: string }
 
 // What each stage card says about the student's progress so far.
 function info(id: string, d: Draft): StageInfo {
@@ -18,10 +18,10 @@ function info(id: string, d: Draft): StageInfo {
   }
   if (id.startsWith('body-')) {
     const i = Number(id.slice(5))
-    return { tag: 'Body', sub: d.points[i] || 'Your point', target: 100, section: id }
+    return { tag: 'Body', sub: d.points[i] || 'Your point', section: id }
   }
-  if (id === 'intro') return { tag: 'Framing', sub: 'Hook & background', target: 60, section: id }
-  if (id === 'conclusion') return { tag: 'Framing', sub: 'Wrap-up & so what', target: 60, section: id }
+  if (id === 'intro') return { tag: 'Framing', sub: 'Hook & background', section: id }
+  if (id === 'conclusion') return { tag: 'Framing', sub: 'Wrap-up & so what', section: id }
   return { tag: 'Final', sub: 'Full essay + rubric feedback' }
 }
 
@@ -109,7 +109,9 @@ function StageCard({ n, label, stage, draft, isCurrent, isDone, locked, onClick 
       : stage.tag === 'Final'
         ? 'Final'
         : 'Later'
-    : stage.tag
+    : words > 0
+      ? `${words} words`
+      : stage.tag
 
   return (
     <button
@@ -136,24 +138,7 @@ function StageCard({ n, label, stage, draft, isCurrent, isDone, locked, onClick 
       )}
       <span className="stage-sub">{stage.sub}</span>
 
-      {stage.section && !locked && (isCurrent || words > 0) && (
-        <span className="stage-detail">
-          <span className="stage-stats">
-            <span>{words} words</span>
-            <span>
-              <strong>~{stage.target}</strong> goal
-            </span>
-          </span>
-          <span className="stage-bar" aria-hidden="true">
-            <span style={{ width: `${Math.min(100, (words / (stage.target ?? 100)) * 100)}%` }} />
-          </span>
-          <span className="stage-foot">
-            <span>{words === 0 ? 'Not started' : words < (stage.target ?? 100) * 0.6 ? 'In progress' : 'Drafted'}</span>
-            <span>{Math.min(100, Math.round((words / (stage.target ?? 100)) * 100))}%</span>
-          </span>
-        </span>
-      )}
-      {!stage.section && isDone && !isCurrent && <span className="stage-meta">Complete</span>}
+      {isDone && !isCurrent && <span className="stage-meta">Complete</span>}
     </button>
   )
 }

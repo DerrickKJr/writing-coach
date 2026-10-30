@@ -465,43 +465,11 @@ button.primary {
   color: var(--faint);
 }
 
-.stage-detail {
-  margin-top: 0.65rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--border);
-}
 
-.stage-stats {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--mono);
-  font-size: 0.75rem;
-}
 
-.stage-stats strong {
-  color: var(--accent);
-}
 
-.stage-bar {
-  height: 6px;
-  margin: 0.5rem 0;
-  border-radius: 999px;
-  background: var(--border);
-  overflow: hidden;
-}
 
-.stage-bar span {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-}
 
-.stage-foot {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  color: var(--muted);
-}
 
 .now-ribbon {
   position: absolute;
@@ -553,9 +521,7 @@ button.primary {
 }
 
 .stage-sub,
-.stage-meta,
-.stage-detail,
-.stage-bar {
+.stage-meta {
   display: block;
 }
 
