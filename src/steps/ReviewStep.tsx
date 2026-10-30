@@ -11,7 +11,17 @@ export function ReviewStep({ draft }: StepProps) {
   const essay = assemble(draft)
 
   async function copy() {
-    await navigator.clipboard.writeText(essay)
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(essay)
+    } else {
+      // Phones on the local network load the app over plain http, where the clipboard API is off.
+      const area = document.createElement('textarea')
+      area.value = essay
+      document.body.appendChild(area)
+      area.select()
+      document.execCommand('copy')
+      area.remove()
+    }
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
