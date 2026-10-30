@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { ESSAY_TYPES, GRADE_LEVELS, wordCount } from '../lib/essay'
-import { MODEL } from '../lib/ollama'
 import { readSource, type Source } from '../lib/sources'
 import { ErrorNote } from '../components/ui'
 import type { StepProps } from './types'
@@ -43,25 +42,6 @@ export function SetupStep({ draft, update, next }: StepProps) {
           build your essay one paragraph at a time, using only your ideas.
         </p>
       </section>
-
-      <div className="stats">
-        <div className="stat">
-          <strong>100%</strong>
-          <span>Your ideas</span>
-        </div>
-        <div className="stat">
-          <strong>Zero</strong>
-          <span>Ghostwriting</span>
-        </div>
-        <div className="stat">
-          <strong>{MODEL.split(':')[0].replace('gemma', 'Gemma ')}</strong>
-          <span>On-device model</span>
-        </div>
-        <div className="stat">
-          <strong>9</strong>
-          <span>Guided stages</span>
-        </div>
-      </div>
 
       <div className="setup-card">
         <header>
