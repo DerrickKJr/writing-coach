@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { CONCLUSION, EMPTY_DRAFT, INTRO, bodySpec, type Draft } from './lib/essay'
-import { MODEL, warmUp } from './lib/ollama'
+import { warmUp } from './lib/ollama'
+import { Stages } from './components/Stages'
 import { SetupStep } from './steps/SetupStep'
 import { ThesisStep } from './steps/ThesisStep'
 import { PointsStep } from './steps/PointsStep'
@@ -77,47 +78,49 @@ export default function App() {
     }
   }
 
+  const landing = step === 0
+
   return (
-    <div className="app">
+    <div className={`app${landing ? ' landing' : ''}`}>
       <header className="topbar">
         <h1>
-          Writing Coach <span className="badge">Essay · Quick</span>
+          Writing Coach <span className="badge">Essay</span>
         </h1>
-        <p className={`model ${modelStatus}`} role="status">
-          {modelStatus === 'loading' && <>Waking up Gemma… the first load can take a few minutes</>}
-          {modelStatus === 'ready' && (
-            <>
-              Gemma is ready · running locally on <code>{MODEL}</code>
-            </>
+        <div className="topbar-right">
+          <span className={`pill ${modelStatus}`} role="status">
+            {modelStatus === 'loading' && 'Waking up Gemma…'}
+            {modelStatus === 'ready' && 'Local model active'}
+            {modelStatus === 'offline' && "Can't reach Gemma"}
+          </span>
+          {landing ? (
+            <button
+              type="button"
+              className="primary"
+              onClick={() => document.getElementById('assignment')?.focus()}
+            >
+              Start writing
+            </button>
+          ) : (
+            <button type="button" onClick={startOver}>
+              New essay
+            </button>
           )}
-          {modelStatus === 'offline' && <>Can't reach Gemma. Start Ollama with <code>ollama serve</code>, then refresh.</>}
-        </p>
+        </div>
       </header>
 
-      <nav className="steps" aria-label="Essay steps">
-        <ol>
-          {STEPS.map((s, i) => (
-            <li key={s.id}>
-              <button
-                type="button"
-                className={i === step ? 'active' : s.ready(draft) ? 'done' : ''}
-                aria-current={i === step ? 'step' : undefined}
-                disabled={!reachable(i)}
-                onClick={() => setStep(i)}
-              >
-                <span className="num">{s.ready(draft) && i !== step && s.id !== 'review' ? '✓' : i + 1}</span>
-                {s.label}
-              </button>
-            </li>
-          ))}
-        </ol>
-        <button type="button" className="link" onClick={startOver}>
-          Start a new essay
-        </button>
-      </nav>
+      {!landing && (
+        <Stages
+          steps={STEPS}
+          current={step}
+          draft={draft}
+          reachable={reachable}
+          onSelect={setStep}
+          onNewEssay={startOver}
+        />
+      )}
 
       <main className="content">
-        {current.render({ draft, update })}
+        {current.render({ draft, update, next: () => setStep(step + 1) })}
 
         <footer className="nav-buttons">
           <button type="button" onClick={() => setStep(step - 1)} disabled={step === 0}>
